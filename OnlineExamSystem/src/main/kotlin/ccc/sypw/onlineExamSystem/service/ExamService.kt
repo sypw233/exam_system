@@ -58,7 +58,7 @@ class ExamService(
     }
 
     fun deleteExams(id: Long) {
-        return examRepository.deleteById(id)
+        examRepository.deleteById(id)
     }
 
     fun findById(id: Long): Exams? {
@@ -73,10 +73,14 @@ class ExamService(
         return examRepository.findTitleById(id)
     }
 
-    // 创建考试
+    /**
+     * 创建考试
+     * 使用事务确保考试记录和题目关联的原子性
+     */
     @Transactional
     fun createExam(exam: Exams): Exams? {
-        val examId = examRepository.saveExam(
+        // 先插入考试记录
+        val insertResult = examRepository.insertExam(
             exam.title,
             exam.description,
             exam.startTime,
@@ -85,6 +89,14 @@ class ExamService(
             exam.totalScore,
             exam.courseId
         )
+        
+        // 如果插入成功，获取生成的ID
+        val examId = if (insertResult > 0) {
+            examRepository.getLastInsertId()
+        } else {
+            null
+        }
+        
         println("examId$examId")
         // 如果考试创建成功，并且有试题需要关联
         if (examId != null && exam.questions != null) {
@@ -121,7 +133,7 @@ class ExamService(
         )
         
         // 创建考试，获取考试ID
-        val examId = examRepository.saveExam(
+        val insertResult = examRepository.insertExam(
             exam.title,
             exam.description,
             exam.startTime,
@@ -129,7 +141,13 @@ class ExamService(
             exam.creatorId,
             exam.totalScore,
             exam.courseId
-        ) ?: return null
+        )
+        
+        val examId = if (insertResult > 0) {
+            examRepository.getLastInsertId()
+        } else {
+            return null
+        }
         
         // 根据分布获取随机题目并关联到考试
         val selectedQuestions = mutableListOf<Pair<Long, Int>>() // Pair<问题ID, 分数>

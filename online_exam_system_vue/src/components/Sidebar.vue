@@ -20,6 +20,7 @@
         <template #title><span>考试管理</span></template>
         <el-menu-item index="/dashboard/exam">试卷管理</el-menu-item>
         <el-menu-item index="/dashboard/exam-submission">交卷管理</el-menu-item>
+        <el-menu-item index="/dashboard/subjective-grading">主观题评分</el-menu-item>
       </el-sub-menu>
       <el-menu-item index="/dashboard/question">
         <span>题目管理</span>
@@ -34,6 +35,7 @@
         <template #title><span>考试管理</span></template>
         <el-menu-item index="/dashboard/exam">试卷管理</el-menu-item>
         <el-menu-item index="/dashboard/exam-submission">交卷管理</el-menu-item>
+        <el-menu-item index="/dashboard/subjective-grading">主观题评分</el-menu-item>
       </el-sub-menu>
       <el-menu-item index="/dashboard/question">
         <span>题目管理</span>

@@ -15,6 +15,10 @@ class QuestionService(
     }
 
     fun getQuestionsByIds(idList: List<Long>): List<Question> {
+        // 检查ID列表是否为空，如果为空则返回空列表，避免SQL语法错误
+        if (idList.isEmpty()) {
+            return emptyList()
+        }
         return questionRepository.getByIdList(idList)
     }
 
@@ -38,10 +42,17 @@ class QuestionService(
 
     // 创建试题
     fun createQuestion(question: Question): Boolean {
+        // 处理options字段，确保为有效的JSON格式
+        val optionsJson = when {
+            question.options == null || question.options.toString().isBlank() -> "[]"
+            question.options is String && (question.options as String).isBlank() -> "[]"
+            else -> question.options.toString()
+        }
+        
         return questionRepository.saveQuestion(
             question.content,
             question.type,
-            question.options.toString(),
+            optionsJson,
             question.answer,
             question.difficulty,
             question.category,

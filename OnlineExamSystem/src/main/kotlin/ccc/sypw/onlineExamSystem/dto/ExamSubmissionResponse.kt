@@ -8,5 +8,6 @@ data class ExamSubmissionResponse(
     val examTitle: String?,
     val examTotalScore: Int?,
     val submissionScore: Int?,
-    val answers: Any?
+    val answers: Any?,
+    val submitDetail: String?
 )

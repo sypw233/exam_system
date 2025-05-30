@@ -3,13 +3,16 @@ package ccc.sypw.onlineExamSystem.util
 import io.jsonwebtoken.Claims
 import io.jsonwebtoken.Jws
 import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.security.Keys
 import java.util.*
 import javax.crypto.SecretKey
 
 
 object JwtUtils {
 
-    private var SECRET_KEY: SecretKey = Jwts.SIG.HS256.key().build()
+    // 使用固定的密钥字符串，确保重启后token仍然有效
+    private const val SECRET_KEY_STRING = "OnlineExamSystemSecretKeyForJWTTokenGeneration2024"
+    private val SECRET_KEY: SecretKey = Keys.hmacShaKeyFor(SECRET_KEY_STRING.toByteArray())
     private const val EXPIRATION_TIME = 1000 * 60 * 60 * 24 // 过期时间：1天
     private const val ISSUER = "OnlineExamSystem" // 可以设置为你的应用名称
 
@@ -68,6 +71,18 @@ object JwtUtils {
     private fun isTokenExpired(token: String): Boolean {
         val expirationDate = getClaimsFromToken(token)?.payload?.expiration
         return expirationDate?.before(Date()) ?: true
+    }
+
+    /**
+     * 解析Token获取用户信息
+     */
+    fun parseToken(token: String): Map<String, Any> {
+        val claims = getClaimsFromToken(token)?.payload
+        return mapOf(
+            "username" to (claims?.subject ?: ""),
+            "role" to (claims?.get("role") ?: ""),
+            "id" to (claims?.get("id") ?: 0L)
+        )
     }
 
 }

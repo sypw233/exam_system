@@ -23,7 +23,8 @@ class ExamSubmissionService(
             examTitle = examRepository.findTitleById(this.examId),  // 根据实际需求获取
             examTotalScore = examRepository.findTotalScoreById(examId),  // 根据实际需求获取
             submissionScore = this.submitScore ?: 0,  // 如果 submitScore 为 null，设置为 0
-            answers = this.answers
+            answers = this.answers,
+            submitDetail = this.submitDetail
         )
     }
 
@@ -39,6 +40,10 @@ class ExamSubmissionService(
         return examSubmissions.map { examSubmission ->
             examSubmission.toExamSubmissionResponse()
         }
+    }
+    
+    fun getOriginalSubmissionsByExam(examId: Long): List<ExamSubmission> {
+        return examSubmissionRepository.findByExamId(examId)
     }
 
     fun getSubmissionsByUser(userId: Long): List<ExamSubmissionResponse> {

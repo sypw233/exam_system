@@ -157,9 +157,15 @@ class ExamController(
             val exam = examService.findById(examId)
             if (exam != null) {
                 val currentTime = LocalDateTime.now()
-                if (currentTime.isBefore(exam.startTime) || currentTime.isAfter(exam.endTime)) {
-                    // 当前时间不在考试时间范围内，返回错误响应
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+                // 获取用户角色
+                val userRole = userName?.let { JwtUtils.getRoleFromToken(token) }
+                
+                // 如果是管理员，允许查看任何时间的考试详情
+                if (userRole != "admin") {
+                    if (currentTime.isBefore(exam.startTime) || currentTime.isAfter(exam.endTime)) {
+                        // 当前时间不在考试时间范围内，返回错误响应
+                        return ResponseEntity.status(HttpStatus.FORBIDDEN).build()
+                    }
                 }
             }
             // 获取关联的题目列表

@@ -53,9 +53,35 @@
                 </el-radio-group>
               </template>
 
-              <!-- 简答题 -->
+              <!-- 填空题 -->
               <template v-if="question.type === 'fill_blank'">
-                <el-input type="textarea" v-model="answers[question.id]" placeholder="请输入答案" class="textarea-input"/>
+                <el-input v-model="answers[question.id]" placeholder="请输入答案" class="fill-blank-input"/>
+              </template>
+
+              <!-- 简答题 -->
+              <template v-if="question.type === 'short_answer'">
+                <el-input 
+                  type="textarea" 
+                  v-model="answers[question.id]" 
+                  placeholder="请详细回答问题..." 
+                  class="textarea-input"
+                  :rows="6"
+                  maxlength="1000"
+                  show-word-limit
+                />
+              </template>
+
+              <!-- 论述题 -->
+              <template v-if="question.type === 'essay'">
+                <el-input 
+                  type="textarea" 
+                  v-model="answers[question.id]" 
+                  placeholder="请详细论述..." 
+                  class="textarea-input"
+                  :rows="10"
+                  maxlength="2000"
+                  show-word-limit
+                />
               </template>
             </div>
           </el-col>
@@ -251,6 +277,11 @@ h3 {
 .textarea-input {
   width: 100%;
   height: 120px;
+  margin-top: 10px;
+}
+
+.fill-blank-input {
+  width: 100%;
   margin-top: 10px;
 }
 .el-button {

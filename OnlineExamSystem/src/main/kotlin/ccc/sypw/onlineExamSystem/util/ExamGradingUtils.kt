@@ -3,13 +3,15 @@ package ccc.sypw.onlineExamSystem.util
 import ccc.sypw.onlineExamSystem.model.Question
 import ccc.sypw.onlineExamSystem.service.ExamQuestionService
 import ccc.sypw.onlineExamSystem.service.QuestionService
+import ccc.sypw.onlineExamSystem.service.SubjectiveGradingService
 import org.springframework.stereotype.Component
 import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
 
 @Component
 class ExamGradingUtils(
     private val questionService: QuestionService, // 注入题目服务
-    private val examQuestionService: ExamQuestionService // 注入考试题目关联服务
+    private val examQuestionService: ExamQuestionService, // 注入考试题目关联服务
+    private val subjectiveGradingService: SubjectiveGradingService // 注入主观题判分服务
 ) {
 
     /**
@@ -88,9 +90,30 @@ class ExamGradingUtils(
             return Triple(false, 0, "题目答案不存在")
         }
         
-        // 对于主观题，暂时标记为需要人工评分
+        // 对于主观题，使用智能判分
         if (questionType == "short_answer") {
-            return Triple(false, 0, "主观题需要教师评分")
+            val studentAnswerStr = studentAnswer.toString().trim()
+            if (studentAnswerStr.isEmpty()) {
+                return Triple(false, 0, "答案为空")
+            }
+            
+            val (score, similarity, details) = subjectiveGradingService.gradeSubjectiveQuestion(
+                studentAnswerStr,
+                correctAnswer,
+                maxScore
+            )
+            
+            // 判断是否需要人工复审（得分率低于30%或相似度低于20%）
+            val scoreRate = score.toDouble() / maxScore
+            val needsReview = scoreRate < 0.3 || similarity < 20.0
+            
+            val feedback = if (needsReview) {
+                "$details\n\n⚠️ 建议人工复审"
+            } else {
+                details
+            }
+            
+            return Triple(scoreRate >= 0.6, score, feedback)
         }
         
         // 对于客观题，自动评分

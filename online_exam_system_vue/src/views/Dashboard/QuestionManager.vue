@@ -20,9 +20,11 @@
         <el-form-item label="题型" :rules="[{ required: true, message: '请选择题型', trigger: 'blur' }]">
           <el-select v-model="newQuestion.type" placeholder="请选择题型">
             <el-option label="单选题" value="single"></el-option>
-            <el-option label="判断题" value="true_flase"></el-option>
+            <el-option label="判断题" value="true_false"></el-option>
             <el-option label="多选题" value="multiple"></el-option>
+            <el-option label="填空题" value="fill_blank"></el-option>
             <el-option label="简答题" value="short_answer"></el-option>
+            <el-option label="论述题" value="essay"></el-option>
           </el-select>
         </el-form-item>
 
@@ -35,12 +37,24 @@
             <!-- 添加更多难度选项 -->
           </el-select>
         </el-form-item>
-        <!-- 选项 -->
-        <el-form-item label="选项" :rules="[{ required: true, message: '请输入选项', trigger: 'blur' }]">
-          <el-input v-model="newQuestion.options" autocomplete="off"/>
+        <!-- 选项 (仅客观题显示) -->
+        <el-form-item label="选项" v-if="['single', 'multiple', 'true_false'].includes(newQuestion.type)" :rules="[{ required: true, message: '请输入选项', trigger: 'blur' }]">
+          <el-input v-model="newQuestion.options" type="textarea" :rows="3" placeholder="单选/多选题格式：A. 选项1;B. 选项2;C. 选项3&#10;判断题格式：A. 正确;B. 错误" autocomplete="off"/>
         </el-form-item>
+        
+        <!-- 填空题选项 -->
+        <el-form-item label="选项" v-if="newQuestion.type === 'fill_blank'" :rules="[{ required: true, message: '请输入选项', trigger: 'blur' }]">
+          <el-input v-model="newQuestion.options" type="textarea" :rows="2" placeholder="填空题无需填写选项，可留空" autocomplete="off"/>
+        </el-form-item>
+        
+        <!-- 答案 -->
         <el-form-item label="答案" :rules="[{ required: true, message: '请输入答案', trigger: 'blur' }]">
-          <el-input v-model="newQuestion.answer" autocomplete="off"/>
+          <el-input 
+            v-model="newQuestion.answer" 
+            :type="['short_answer', 'essay'].includes(newQuestion.type) ? 'textarea' : 'text'"
+            :rows="['short_answer', 'essay'].includes(newQuestion.type) ? 3 : 1"
+            :placeholder="getAnswerPlaceholder()"
+            autocomplete="off"/>
         </el-form-item>
       </el-form>
 
@@ -164,14 +178,31 @@ export default {
     // 添加题目
     const addQuestion = async () => {
       try {
-        console.log(newQuestion)
-        // console.log(localStorage.getItem("role"))
-        // const {category, content, type, difficulty, options} = newQuestion
-        await api.post('/questions', newQuestion)
-        dialogFormVisible.value = false // 关闭弹窗
-        alert('题目添加成功')
+        // 对于主观题类型，清空options字段
+        if (['short_answer', 'essay'].includes(newQuestion.type)) {
+          newQuestion.options = '';
+        }
+        
+        // 如果是填空题且没有填写选项，设置为空字符串
+        if (newQuestion.type === 'fill_blank' && !newQuestion.options.trim()) {
+          newQuestion.options = '';
+        }
+        
+        console.log('提交的题目数据:', newQuestion);
+        await api.post('/questions', newQuestion);
+        dialogFormVisible.value = false; // 关闭弹窗
+        await getQuestions(); // 刷新题目列表
+        alert('题目添加成功');
+        
+        // 重置表单
+        Object.keys(newQuestion).forEach(key => {
+          if (key !== 'creatorId') {
+            newQuestion[key] = '';
+          }
+        });
       } catch (error) {
-        console.error('添加题目失败', error)
+        console.error('添加题目失败', error);
+        alert(`添加题目失败: ${error.response?.data?.message || error.message}`);
       }
     };
 
@@ -182,7 +213,26 @@ export default {
             await api.delete(`/questions/${id}`);
             await getQuestions(); // 删除后刷新题目列表
           })
-
+    };
+    
+    // 根据题型获取答案输入框的提示文本
+    const getAnswerPlaceholder = () => {
+      switch(newQuestion.type) {
+        case 'single':
+          return '请输入正确选项的字母，如：A';
+        case 'multiple':
+          return '请输入正确选项的字母，多个选项用逗号分隔，如：A,B,C';
+        case 'true_false':
+          return '请输入正确选项的字母，如：A';
+        case 'fill_blank':
+          return '请输入填空题答案，多个空用分号分隔';
+        case 'short_answer':
+          return '请输入简答题参考答案';
+        case 'essay':
+          return '请输入论述题参考答案';
+        default:
+          return '请输入答案';
+      }
     };
 
     // 初始化时获取题目信息
@@ -201,6 +251,7 @@ export default {
       reset,
       addQuestion,
       deleteQuestion,
+      getAnswerPlaceholder,
     };
   },
 };

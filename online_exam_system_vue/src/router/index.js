@@ -8,6 +8,7 @@ import Dashboard from "@/views/Dashboard/Dashboard.vue";
 import UserManager from "@/views/Dashboard/UserManager.vue";
 import QuestionManager from "@/views/Dashboard/QuestionManager.vue";
 import ExamManager from "@/views/Dashboard/ExamManager.vue";
+import SubjectiveGrading from "@/views/Dashboard/SubjectiveGrading.vue";
 import AnswerResult from "@/views/student/AnswerResult.vue";
 import error404 from "@/views/error404.vue";
 import CourseManager from "@/views/Dashboard/CourseManager.vue";
@@ -40,6 +41,12 @@ const routes = [
                 path: '/dashboard/exam-submission',
                 name: 'exam-submission-manager',
                 component: ExamSubmissionManager,
+                meta: {roles: ['ADMIN', 'TEACHER']}
+            },
+            {
+                path: '/dashboard/subjective-grading',
+                name: 'subjective-grading',
+                component: SubjectiveGrading,
                 meta: {roles: ['ADMIN', 'TEACHER']}
             },
             {

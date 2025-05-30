@@ -47,17 +47,29 @@ interface QuestionRepository : CrudRepository<Question, String> {
     @Query("SELECT * FROM questions WHERE type = :type ORDER BY RAND() LIMIT :count")
     fun findRandomQuestionsByType(type: String, count: Int): List<Question>
     
+    @Query("SELECT * FROM questions WHERE type = :type ORDER BY RAND() LIMIT :count")
+    fun getRandomQuestionsByType(type: String, count: Int): List<Question>
+    
     // 根据分类随机获取指定数量的题目
     @Query("SELECT * FROM questions WHERE category = :category ORDER BY RAND() LIMIT :count")
     fun findRandomQuestionsByCategory(category: String, count: Int): List<Question>
+    
+    @Query("SELECT * FROM questions WHERE category = :category ORDER BY RAND() LIMIT :count")
+    fun getRandomQuestionsByCategory(category: String, count: Int): List<Question>
     
     // 根据难度随机获取指定数量的题目
     @Query("SELECT * FROM questions WHERE difficulty = :difficulty ORDER BY RAND() LIMIT :count")
     fun findRandomQuestionsByDifficulty(difficulty: String, count: Int): List<Question>
     
+    @Query("SELECT * FROM questions WHERE difficulty = :difficulty ORDER BY RAND() LIMIT :count")
+    fun getRandomQuestionsByDifficulty(difficulty: String, count: Int): List<Question>
+    
     // 根据类型、分类和难度随机获取指定数量的题目
     @Query("SELECT * FROM questions WHERE type = :type AND category = :category AND difficulty = :difficulty ORDER BY RAND() LIMIT :count")
     fun findRandomQuestionsByTypeAndCategoryAndDifficulty(type: String, category: String, difficulty: String, count: Int): List<Question>
+    
+    @Query("SELECT * FROM questions WHERE type = :type AND category = :category AND difficulty = :difficulty ORDER BY RAND() LIMIT :count")
+    fun getRandomQuestionsByTypeAndCategoryAndDifficulty(type: String, category: String, difficulty: String, count: Int): List<Question>
 
     // 保存（添加）问题
     @Modifying
