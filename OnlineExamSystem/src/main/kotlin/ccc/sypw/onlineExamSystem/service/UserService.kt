@@ -25,6 +25,7 @@ class UserService @Autowired constructor(
     fun getAllTeacherUsers(): List<User> {
         return userRepository.findAllTeacher()
     }
+
     fun getAllStudentUsers(): List<User> {
         return userRepository.findAllStudent()
     }
@@ -68,7 +69,11 @@ class UserService @Autowired constructor(
     fun updateUser(id: Long, userDataResponse: UserDataResponse): User? {
         val existingUser = userRepository.findById(id).orElse(null)
         return if (existingUser != null) {
-            val updatedUser = existingUser.copy(username = userDataResponse.username, email = userDataResponse.email)
+            val updatedUser = existingUser.copy(
+                username = userDataResponse.username,
+                email = userDataResponse.email,
+                role = userDataResponse.role
+            )
             userRepository.save(updatedUser)
         } else {
             null
@@ -101,9 +106,9 @@ class UserService @Autowired constructor(
         // 校验密码
         if (user.password == loginResponse.password) {
             // 登录成功，返回 JWT token
-            if(user.id !=null){
-                println("userId:"+user.id)
-                val token = JwtUtils.generateToken(user.username,user.role)
+            if (user.id != null) {
+                println("userId:" + user.id)
+                val token = JwtUtils.generateToken(user.username, user.role)
                 val response = mapOf(
                     "message" to "Login successful",
                     "token" to token, // 这里可以根据实际需要生成真实的 token
@@ -112,7 +117,7 @@ class UserService @Autowired constructor(
                     "id" to user.id
                 )
                 return response
-            }else{
+            } else {
                 return null
             }
         } else {

@@ -22,6 +22,7 @@ const routes = [
         name: 'dashboard',
         component: Dashboard,
         meta: {requiresAuth: true, roles: ['ADMIN', 'TEACHER']},
+        redirect: '/dashboard/course', // 默认重定向到课程管理
         children: [
             {path: '/dashboard/user', name: 'user-manger', component: UserManager, meta: {roles: ['ADMIN']}},
             {
@@ -43,7 +44,7 @@ const routes = [
                 meta: {roles: ['ADMIN', 'TEACHER']}
             },
             {
-                path: '/dashboard/',
+                path: '/dashboard/course',
                 name: 'course-manager',
                 component: CourseManager,
                 meta: {roles: ['ADMIN', 'TEACHER']}
@@ -64,10 +65,7 @@ const routes = [
         component: StudentHome,
         meta: {requiresAuth: true, roles: ['STUDENT']}
     },
-    // { path: '/page-test', name: 'page-home', component: page_home, children: [
-    //         { path: '/page1', name: 'page1', component: page1 },
-    //         { path: '/page2', name: 'page2', component: page2 },
-    //     ]},
+
     {path: '/:pathMatch(.*)*', name: '404', component: error404},
 ];
 

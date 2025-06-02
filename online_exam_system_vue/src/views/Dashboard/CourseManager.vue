@@ -131,13 +131,15 @@
 </template>
 
 <script>
-import {ref, onMounted, computed} from "vue";
+import {ref, onMounted, onActivated, watch, computed} from "vue";
+import {useRoute} from "vue-router";
 import {ElMessage, ElMessageBox} from "element-plus";
 import api from "@/api/axios.js";
 
 export default {
   name: "CourseManager",
   setup() {
+    const route = useRoute();
     // 课程数据和学生、教师数据
     const courses = ref([]);
     const teachers = ref([]);
@@ -336,6 +338,26 @@ export default {
       getCourses();
       getTeachers();
       getStudents();
+    });
+
+    /**
+     * 组件激活时重新获取数据（解决路由切换缓存问题）
+     */
+    onActivated(() => {
+      getCourses();
+      getTeachers();
+      getStudents();
+    });
+
+    /**
+     * 监听路由变化，确保切换到此页面时重新加载数据
+     */
+    watch(() => route.path, (newPath) => {
+      if (newPath === '/dashboard/course') {
+        getCourses();
+        getTeachers();
+        getStudents();
+      }
     });
 
     return {

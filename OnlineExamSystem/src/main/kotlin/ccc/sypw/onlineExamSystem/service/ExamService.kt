@@ -200,15 +200,19 @@ class ExamService(
             }
             // 仅按类型和分类筛选
             distribution.category != null -> {
-                questionRepository.findRandomQuestionsByCategory(distribution.category, distribution.count)
-                    .filter { it.type == distribution.type }
-                    .take(distribution.count)
+                questionRepository.findRandomQuestionsByTypeAndCategory(
+                    distribution.type,
+                    distribution.category,
+                    distribution.count
+                )
             }
             // 仅按类型和难度筛选
             distribution.difficulty != null -> {
-                questionRepository.findRandomQuestionsByDifficulty(distribution.difficulty, distribution.count)
-                    .filter { it.type == distribution.type }
-                    .take(distribution.count)
+                questionRepository.findRandomQuestionsByTypeAndDifficulty(
+                    distribution.type,
+                    distribution.difficulty,
+                    distribution.count
+                )
             }
             // 仅按类型筛选
             else -> {

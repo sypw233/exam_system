@@ -12,13 +12,14 @@ export default defineConfig({
   plugins: [
     vue(),
     vueDevTools(),
-    VueMcp(),
+
     AutoImport({
       resolvers: [ElementPlusResolver()],
     }),
     Components({
       resolvers: [ElementPlusResolver()],
     }),
+    VueMcp(),
   ],
   resolve: {
     alias: {

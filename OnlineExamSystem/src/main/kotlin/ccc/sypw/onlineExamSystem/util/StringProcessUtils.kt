@@ -3,6 +3,7 @@ package ccc.sypw.onlineExamSystem.util
 import ccc.sypw.onlineExamSystem.model.ExamSubmission
 import ccc.sypw.onlineExamSystem.model.Question
 import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.core.type.TypeReference
 import kotlin.jvm.Throws
 
 class StringProcessUtils {
@@ -16,13 +17,25 @@ class StringProcessUtils {
                 // 判断 options 类型
                 when (val options = question.options) {
                     is String -> {
-                        // 如果是 String 类型，将其转换为 Map
+                        // 如果是 String 类型，尝试解析为不同格式
                         try {
-                            val optionsMap: Map<String, String> =
-                                objectMapper.readValue(options, Map::class.java) as Map<String, String>
-                            question.options = optionsMap // 更新 options 为 Map
+                            // 首先尝试解析为数组格式
+                            if (options.trim().startsWith("[")) {
+                                val optionsList: List<String> = objectMapper.readValue(options, object : TypeReference<List<String>>() {})
+                                // 将数组转换为Map格式，使用索引作为key
+                                val optionsMap = optionsList.mapIndexed { index, value -> 
+                                    ('A' + index).toString() to value 
+                                }.toMap()
+                                question.options = optionsMap
+                            } else {
+                                // 尝试解析为Map格式
+                                val optionsMap: Map<String, String> = objectMapper.readValue(options, object : TypeReference<Map<String, String>>() {})
+                                question.options = optionsMap
+                            }
                         } catch (e: Exception) {
                             println("解析 options 字符串失败: ${e.message}")
+                            // 如果解析失败，保持原始字符串
+                            question.options = options
                         }
                     }
 

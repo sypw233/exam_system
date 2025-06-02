@@ -55,6 +55,14 @@ interface QuestionRepository : CrudRepository<Question, String> {
     @Query("SELECT * FROM questions WHERE difficulty = :difficulty ORDER BY RAND() LIMIT :count")
     fun findRandomQuestionsByDifficulty(difficulty: String, count: Int): List<Question>
 
+    // 根据类型和分类随机获取指定数量的题目
+    @Query("SELECT * FROM questions WHERE type = :type AND category = :category ORDER BY RAND() LIMIT :count")
+    fun findRandomQuestionsByTypeAndCategory(type: String, category: String, count: Int): List<Question>
+
+    // 根据类型和难度随机获取指定数量的题目
+    @Query("SELECT * FROM questions WHERE type = :type AND difficulty = :difficulty ORDER BY RAND() LIMIT :count")
+    fun findRandomQuestionsByTypeAndDifficulty(type: String, difficulty: String, count: Int): List<Question>
+
     // 根据类型、分类和难度随机获取指定数量的题目
     @Query("SELECT * FROM questions WHERE type = :type AND category = :category AND difficulty = :difficulty ORDER BY RAND() LIMIT :count")
     fun findRandomQuestionsByTypeAndCategoryAndDifficulty(type: String, category: String, difficulty: String, count: Int): List<Question>
