@@ -45,6 +45,7 @@
 <script>
 import {onMounted, ref} from 'vue';
 import {useRouter} from 'vue-router';
+import {ElMessage} from 'element-plus';
 import api from '@/api/axios';
 import Navbar from "@/components/Navbar.vue";
 
@@ -152,12 +153,48 @@ export default {
       }
     };
 
-    // 跳转到试卷详情页
-    const toExamMsg = (examId) => {
-      router.push({
-        path: '/answer',
-        query: {examId}
-      });
+    /**
+     * 检查用户是否已经提交过该考试
+     * @param {number} examId - 考试ID
+     * @returns {boolean} 是否已提交
+     */
+    const checkExamSubmission = async (examId) => {
+      try {
+        const userId = localStorage.getItem('id');
+        const response = await api(`/exam-submissions/user/${userId}`);
+        if (response.status === 200) {
+          // 检查是否存在该考试的提交记录
+          return response.data.some(submission => submission.examId === examId);
+        }
+        return false;
+      } catch (error) {
+        console.error('检查考试提交状态失败:', error);
+        return false;
+      }
+    };
+
+    /**
+     * 跳转到试卷详情页
+     * @param {number} examId - 考试ID
+     */
+    const toExamMsg = async (examId) => {
+      try {
+        // 先检查是否已经提交过该考试
+        const hasSubmitted = await checkExamSubmission(examId);
+        if (hasSubmitted) {
+          ElMessage.warning('您已经提交过该考试，无法重复参加！');
+          return;
+        }
+        
+        // 如果没有提交过，则跳转到答题页面
+        router.push({
+          path: '/answer',
+          query: {examId}
+        });
+      } catch (error) {
+        console.error('跳转考试页面失败:', error);
+        ElMessage.error('跳转失败，请稍后重试');
+      }
     };
 
     // 初始化时获取考试信息

@@ -161,7 +161,7 @@
 <script>
 import {onMounted, reactive, ref, computed} from 'vue';
 import api from '@/api/axios';
-import {ElMessageBox} from "element-plus"; // 引入配置好的 axios 实例
+import { ElMessage, ElMessageBox } from "element-plus"; // 引入配置好的 axios 实例
 
 export default {
   name: 'QuestionManager',
@@ -346,7 +346,7 @@ export default {
         const res = await api.get(`/questions/${keyword.value}`);
         pagination.value.records = [res.data.data.records];
       } catch (error) {
-        alert('没找到该题目');
+        ElMessage.error('没找到该题目');
         console.error('搜索题目失败', error);
       }
     };
@@ -380,13 +380,13 @@ export default {
           
           // 验证是否有正确答案
           if (correctAnswers.length === 0) {
-            alert('请至少选择一个正确答案');
+            ElMessage.warning('请至少选择一个正确答案');
             return;
           }
           
           // 验证选项内容是否填写完整
           if (questionOptions.value.some(option => !option.text.trim())) {
-            alert('请填写完整的选项内容');
+            ElMessage.warning('请填写完整的选项内容');
             return;
           }
         } else if (newQuestion.type === 'true_false') {
@@ -399,7 +399,7 @@ export default {
           newQuestion.answer = trueFalseAnswer.value;
           
           if (!trueFalseAnswer.value) {
-            alert('请选择判断题的正确答案');
+            ElMessage.warning('请选择判断题的正确答案');
             return;
           }
         } else if (['fill_blank', 'short_answer', 'essay'].includes(newQuestion.type)) {
@@ -407,7 +407,7 @@ export default {
           newQuestion.options = JSON.stringify([]);
           
           if (!newQuestion.answer.trim()) {
-            alert('请填写参考答案');
+            ElMessage.warning('请填写参考答案');
             return;
           }
         }
@@ -416,13 +416,13 @@ export default {
         await api.post('/questions', newQuestion);
         dialogFormVisible.value = false; // 关闭弹窗
         await getQuestions(); // 刷新题目列表
-        alert('题目添加成功');
+        ElMessage.success('题目添加成功');
         
         // 重置表单
         resetForm();
       } catch (error) {
         console.error('添加题目失败', error);
-        alert(`添加题目失败: ${error.response?.data?.message || error.message}`);
+        ElMessage.error(`添加题目失败: ${error.response?.data?.message || error.message}`);
       }
     };
 

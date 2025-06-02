@@ -293,7 +293,7 @@ export default {
       );
 
       if (isAlreadyEnrolled) {
-        alert("该学生已在课程中，不能重复添加");
+        ElMessage.warning("该学生已在课程中，不能重复添加");
         return;
       }
 

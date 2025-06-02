@@ -98,6 +98,7 @@
 
 <script>
 import { onMounted, ref, computed, onUnmounted } from "vue";
+import { ElMessage } from 'element-plus';
 import api from "@/api/axios.js";
 import router from "@/router/index.js";
 import { useRoute } from "vue-router";
@@ -134,9 +135,9 @@ export default {
       } catch (error) {
         console.log(error.response.status);
         if (error.response.status === 409) {
-          alert("获取试卷失败:已经提交过该试卷");
+          ElMessage.error("获取试卷失败:已经提交过该试卷");
         } else if (error.response.status === 403) {
-          alert("获取试卷失败:当前考试不在时间内");
+          ElMessage.error("获取试卷失败:当前考试不在时间内");
         }
         await router.push({path: "/"});
       }
@@ -178,7 +179,7 @@ export default {
 
       try {
         const res = await api.post(`/exam-submissions/submit`, submitData);
-        alert("提交成功");
+        ElMessage.success("提交成功");
         await router.push({
           path: "/answer/result",
           query: {

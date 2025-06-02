@@ -51,6 +51,7 @@
 <script>
 import {ref} from 'vue';
 import {useRouter} from 'vue-router';
+import { ElMessage } from 'element-plus';
 import api from '@/api/axios';  // 引入配置好的 axios 实例
 
 export default {
@@ -90,9 +91,9 @@ export default {
         console.error('注册失败', error);
         // 捕获并处理错误响应
         if (error.response && error.response.data && error.response.data.message) {
-          alert(error.response.data.message);  // 显示错误信息
+          ElMessage.error(error.response.data.message);  // 显示错误信息
         } else {
-          alert('注册失败,请重试!');  // 默认错误消息
+          ElMessage.error('注册失败,请重试!');  // 默认错误消息
         }
       }
     };

@@ -37,6 +37,7 @@
 <script>
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
+import { ElMessage } from 'element-plus';
 import api from '@/api/axios';  // 导入封装好的 API 请求
 
 export default {
@@ -87,7 +88,7 @@ export default {
         localStorage.setItem('username', username);
         localStorage.setItem('role', role.toUpperCase());
         localStorage.setItem('id', id);
-        alert("登录成功!");
+        ElMessage.success("登录成功!");
 
         // 根据用户角色跳转到相应的页面
         switch (role.toUpperCase()) {
@@ -102,9 +103,9 @@ export default {
       } catch (error) {
         console.error('登录失败', error);
         if (error.response && error.response.data && error.response.data.message) {
-          alert(error.response.data.message);  // 显示错误信息
+          ElMessage.error(error.response.data.message);  // 显示错误信息
         } else {
-          alert('登录失败,请重试');
+          ElMessage.error('登录失败,请重试');
         }
       }
     };

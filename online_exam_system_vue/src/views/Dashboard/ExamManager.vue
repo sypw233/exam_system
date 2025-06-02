@@ -270,6 +270,7 @@
 
 <script>
 import { ref, reactive, onMounted } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import api from '@/api/axios';
 import RandomExamForm from '@/components/RandomExamForm.vue';
 
@@ -464,14 +465,29 @@ export default {
       }
     };
     
-    // 删除考试
+    /**
+     * 删除考试
+     * @param {number} examId - 考试ID
+     */
     const deleteExam = async (examId) => {
       try {
+        await ElMessageBox.confirm(
+          '确定要删除该考试吗？删除后无法恢复！',
+          '删除确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+          }
+        );
         await api.delete(`/exams/${examId}`);
-        alert('考试删除成功');
+        ElMessage.success('考试删除成功');
         await getExamInfo(); // 删除成功后重新获取考试列表
       } catch (error) {
-        console.error('删除考试失败', error);
+        if (error !== 'cancel') {
+          console.error('删除考试失败', error);
+          ElMessage.error('删除考试失败');
+        }
       }
     };
     
@@ -495,7 +511,7 @@ export default {
         
       } catch (error) {
         console.error('导出成绩失败', error);
-        alert('导出成绩失败');
+        ElMessage.error('导出成绩失败');
       }
     };
 
@@ -531,10 +547,10 @@ export default {
         document.body.removeChild(link);
         window.URL.revokeObjectURL(url);
         
-        alert('Excel文件导出成功！');
+        ElMessage.success('Excel文件导出成功！');
       } catch (error) {
         console.error('导出Excel失败', error);
-        alert('导出失败: ' + (error.response?.data?.message || error.message));
+        ElMessage.error('导出失败: ' + (error.response?.data?.message || error.message));
       }
     };
 
@@ -561,9 +577,9 @@ export default {
       } catch (error) {
         console.error('获取考试详情失败', error);
         if (error.response && error.response.status === 403) {
-          alert('权限不足，无法查看考试详情');
+          ElMessage.error('权限不足，无法查看考试详情');
         } else {
-          alert('获取考试详情失败: ' + (error.response?.data?.message || error.message));
+          ElMessage.error('获取考试详情失败: ' + (error.response?.data?.message || error.message));
         }
       }
     };
@@ -665,7 +681,7 @@ export default {
         console.log(examData)
         await api.post('/exams', examData);
         createExamDialogVisible.value = false;
-        alert('考试创建成功');
+        ElMessage.success('考试创建成功');
         selectedQuestions.value = [];
         await getExamInfo();
       } catch (error) {
@@ -683,13 +699,13 @@ export default {
         
         const response = await api.post('/exams/random', formData);
         if (response.status === 200) {
-          alert('随机组卷成功');
+          ElMessage.success('随机组卷成功');
           randomExamDialogVisible.value = false;
           await getExamInfo(); // 重新获取考试列表
         }
       } catch (error) {
         console.error('随机组卷失败', error);
-        alert('随机组卷失败: ' + (error.response?.data?.message || error.message));
+        ElMessage.error('随机组卷失败: ' + (error.response?.data?.message || error.message));
       }
     };
 

@@ -1,5 +1,6 @@
 // src/api/axios.js
 import axios from 'axios';
+import { ElMessage } from 'element-plus';
 import router from "@/router/index.js";
 
 const api = axios.create({
@@ -21,7 +22,7 @@ api.interceptors.request.use(
         localStorage.removeItem('token');
         localStorage.removeItem('username');
         localStorage.removeItem('role');
-        router.push('/').then(r => alert("登录失效,请重新登录!"));
+        router.push('/').then(r => ElMessage.error("登录失效,请重新登录!"));
         return Promise.reject(error);
     }
 );
@@ -41,7 +42,7 @@ api.interceptors.response.use(
                 localStorage.removeItem('username');
                 localStorage.removeItem('role');
                 localStorage.removeItem('id');
-                router.push('/').then(r => alert('登录已过期，请重新登录!'));
+                router.push('/').then(r => ElMessage.error('登录已过期，请重新登录!'));
             }
         }
         // 其他错误不强制退出登录，让组件自行处理

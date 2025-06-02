@@ -239,6 +239,7 @@
 
 <script>
 import {onMounted, ref, reactive} from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import api from "@/api/axios.js";
 import { Service } from '@element-plus/icons-vue';
 import axios from "@/api/axios.js";
@@ -300,14 +301,29 @@ export default {
       }
     };
 
-    // 删除某个考试提交记录
+    /**
+     * 删除某个考试提交记录
+     * @param {number} submissionId - 提交记录ID
+     */
     const deleteSubmissions = async (submissionId) => {
       try {
+        await ElMessageBox.confirm(
+          '确定要删除该提交记录吗？删除后无法恢复！',
+          '删除确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+          }
+        );
         await api.delete(`/exam-submissions/${submissionId}`);
-        alert('删除成功');
+        ElMessage.success('删除成功');
         await getAllSubmissions(); // 删除成功后重新获取考试列表
       } catch (error) {
-        console.error('删除失败', error);
+        if (error !== 'cancel') {
+          console.error('删除失败', error);
+          ElMessage.error('删除失败');
+        }
       }
     };
 
@@ -388,7 +404,7 @@ export default {
           isEditing.value = false;
         } catch (error) {
           console.error('获取阅卷详情失败:', error);
-          alert('获取阅卷详情失败');
+          ElMessage.error('获取阅卷详情失败');
         }
       };
 
@@ -417,10 +433,10 @@ export default {
           // 更新当前总分
           gradingDetails.value.currentScore = gradingDetails.value.questions.reduce((total, q) => total + (q.currentScore || 0), 0);
           
-          alert('分数更新成功');
+          ElMessage.success('分数更新成功');
         } catch (error) {
           console.error('更新分数失败:', error);
-          alert('更新分数失败');
+          ElMessage.error('更新分数失败');
         }
       };
   
@@ -445,11 +461,11 @@ export default {
           // 然后标记阅卷完成
           await api.put(`/grading/submission/${gradingDetails.value.submissionId}/complete`);
           gradingDetails.value.isGraded = true;
-          alert('阅卷完成');
+          ElMessage.success('阅卷完成');
           await getAllSubmissions(); // 刷新列表
         } catch (error) {
           console.error('完成阅卷失败:', error);
-          alert('完成阅卷失败: ' + (error.response?.data?.message || error.message));
+          ElMessage.error('完成阅卷失败: ' + (error.response?.data?.message || error.message));
         }
       };
   
@@ -486,10 +502,10 @@ export default {
           );
           
           isEditing.value = false;
-          alert('分数修改已保存');
+          ElMessage.success('分数修改已保存');
         } catch (error) {
           console.error('保存分数失败:', error);
-          alert('保存分数失败: ' + (error.response?.data?.message || error.message));
+          ElMessage.error('保存分数失败: ' + (error.response?.data?.message || error.message));
         }
       };
   
@@ -663,7 +679,7 @@ export default {
         
       } catch (error) {
         console.error('AI流式评分失败:', error);
-        alert('AI评分失败: ' + error.message);
+        ElMessage.error('AI评分失败: ' + error.message);
       } finally {
         aiGradingLoading.value = false;
       }

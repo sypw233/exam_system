@@ -62,6 +62,7 @@
 
 <script>
 import {ref, onMounted} from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
 import api from "@/api/axios.js";
 
 export default {
@@ -140,17 +141,33 @@ export default {
         dialogVisible.value = false;
         await fetchUsers();
       } catch (error) {
-        alert('更新用户失败:'+error);
+        ElMessage.error('更新用户失败: ' + error);
       }
     };
 
-    // 删除用户
+    /**
+     * 删除用户
+     * @param {number} id - 用户ID
+     */
     const deleteUser = async (id) => {
       try {
+        await ElMessageBox.confirm(
+          '确定要删除该用户吗？删除后无法恢复！',
+          '删除确认',
+          {
+            confirmButtonText: '确定',
+            cancelButtonText: '取消',
+            type: 'warning',
+          }
+        );
         await api.delete(`/users/${id}`);
+        ElMessage.success('用户删除成功');
         await fetchUsers();
       } catch (error) {
-        console.error('删除用户失败:', error);
+        if (error !== 'cancel') {
+          console.error('删除用户失败:', error);
+          ElMessage.error('删除用户失败');
+        }
       }
     };
 
