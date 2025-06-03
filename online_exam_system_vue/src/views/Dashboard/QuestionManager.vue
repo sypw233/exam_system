@@ -1,10 +1,99 @@
 <template>
+  <div class="question-manager-container">
+    <!-- 页面标题区域 -->
+    <div class="page-header">
+      <div class="header-content">
+        <h2 class="page-title">
+          <el-icon class="title-icon"><QuestionFilled /></el-icon>
+          题目管理
+        </h2>
+        <p class="page-description">管理系统中的所有题目，包括添加、搜索和删除题目</p>
+      </div>
+    </div>
 
-  <!-- 页头 -->
-  <el-header>
-    <el-button type="primary" @click="openAddDialog">添加题目</el-button>
+    <!-- 搜索和操作区域 -->
+    <div class="search-section">
+      <el-card class="search-card" shadow="hover">
+        <div class="search-content">
+          <div class="search-left">
+            <el-input 
+              v-model="keyword" 
+              placeholder="输入题目ID进行搜索" 
+              @keyup.enter="search"
+              class="search-input"
+              clearable
+            >
+              <template #prefix>
+                <i class="el-icon-search"></i>
+              </template>
+            </el-input>
+          </div>
+          <div class="search-right">
+            <el-button type="primary" @click="search">搜索</el-button>
+            <el-button @click="reset">重置</el-button>
+            <el-button type="success" @click="openAddDialog">添加题目</el-button>
+          </div>
+        </div>
+      </el-card>
+    </div>
+
+    <!-- 表格区域 -->
+    <div class="table-section">
+      <el-card class="table-card" shadow="hover">
+        <div class="table-header">
+          <h2 class="table-title">题目列表</h2>
+        </div>
+        <el-table 
+          :data="pagination.records" 
+          class="question-table"
+          border
+          stripe
+          style="width: 100%"
+        >
+          <el-table-column prop="category" label="题目考点" min-width="120"></el-table-column>
+          <el-table-column prop="content" label="内容" min-width="200" show-overflow-tooltip></el-table-column>
+          <el-table-column label="题型" min-width="100">
+            <template #default="scope">
+              <el-tag :type="getQuestionTypeTag(scope.row.type)" effect="light">
+                {{ formatQuestionType(scope.row.type) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column label="难度" min-width="100">
+            <template #default="scope">
+              <el-tag :type="getDifficultyTag(scope.row.difficulty)" effect="light">
+                {{ formatDifficulty(scope.row.difficulty) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+
+          <el-table-column label="操作" width="120" fixed="right">
+            <template #default="scope">
+              <div class="action-buttons">
+                <el-button @click="deleteQuestion(scope.row.id)" type="danger" size="small">
+                  删除
+                </el-button>
+              </div>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <!-- 分页 -->
+        <el-pagination
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+          :current-page="pagination.current"
+          :page-sizes="[10, 20, 40]"
+          :page-size="pagination.size"
+          layout="total, sizes, prev, pager, next, jumper"
+          :total="pagination.total"
+          class="pagination"
+        />
+      </el-card>
+    </div>
+
     <!-- 添加题目弹窗 -->
-    <el-dialog v-model="dialogFormVisible" title="添加题目" width="600">
+    <el-dialog v-model="dialogFormVisible" title="添加题目" width="600" class="question-dialog">
       <el-form :model="newQuestion" ref="form" label-width="120px">
         <!-- 题目考点 -->
         <el-form-item label="题目考点" :rules="[{ required: true, message: '请输入题目考点', trigger: 'blur' }]">
@@ -40,18 +129,18 @@
         <!-- 单选题/多选题选项管理 -->
         <div v-if="['single', 'multiple'].includes(newQuestion.type)">
           <el-form-item label="选项管理">
-            <div v-for="(option, index) in questionOptions" :key="index" style="margin-bottom: 10px; display: flex; align-items: center;">
-              <span style="margin-right: 10px; font-weight: bold;">{{ String.fromCharCode(65 + index) }}.</span>
+            <div v-for="(option, index) in questionOptions" :key="index" class="option-item">
+              <span class="option-label">{{ String.fromCharCode(65 + index) }}.</span>
               <el-input 
                 v-model="option.text" 
                 placeholder="请输入选项内容" 
-                style="flex: 1; margin-right: 10px;"
+                class="option-input"
               />
               <el-checkbox 
                 v-model="option.isCorrect" 
                 :disabled="newQuestion.type === 'single' && option.isCorrect === false && hasCorrectAnswer"
                 @change="onCorrectAnswerChange(index)"
-                style="margin-right: 10px;"
+                class="option-checkbox"
               >
                 正确答案
               </el-checkbox>
@@ -60,18 +149,19 @@
                 size="small" 
                 @click="removeOption(index)"
                 :disabled="questionOptions.length <= 2"
+                class="option-delete"
               >
                 删除
               </el-button>
             </div>
-            <el-button type="primary" @click="addOption" style="margin-top: 10px;">添加选项</el-button>
+            <el-button type="primary" @click="addOption" class="add-option-btn">添加选项</el-button>
           </el-form-item>
         </div>
         
         <!-- 判断题选项 -->
         <div v-if="newQuestion.type === 'true_false'">
           <el-form-item label="选项">
-            <div style="margin-bottom: 10px;">
+            <div class="true-false-options">
               <el-radio-group v-model="trueFalseAnswer">
                 <el-radio label="A">A. 正确</el-radio>
                 <el-radio label="B">B. 错误</el-radio>
@@ -111,60 +201,18 @@
         </div>
       </template>
     </el-dialog>
-
-    <!-- 添加搜索框 -->
-    <el-input v-model="keyword" placeholder="输入题目ID进行搜索" @keyup.enter="search"
-              style="width: 200px; margin-left: 20px;"></el-input>
-    <el-button type="primary" @click="search" style="margin-left: 10px;">搜索</el-button>
-    <el-button @click="reset" style="margin-left: 10px;">重置</el-button>
-  </el-header>
-
-  <!-- 主体部分 -->
-  <el-main>
-    <el-table :data="pagination.records" style="width: 100%">
-      <el-table-column prop="category" label="题目考点"></el-table-column>
-      <el-table-column prop="content" label="内容"></el-table-column>
-      <el-table-column label="题型">
-        <template #default="scope">
-          {{ formatQuestionType(scope.row.type) }}
-        </template>
-      </el-table-column>
-      <el-table-column label="难度">
-        <template #default="scope">
-          {{ formatDifficulty(scope.row.difficulty) }}
-        </template>
-      </el-table-column>
-
-      <el-table-column label="操作" width="180">
-        <template #default="scope">
-          <el-button @click="deleteQuestion(scope.row.id)" type="danger" size="small">
-            删除
-          </el-button>
-        </template>
-      </el-table-column>
-    </el-table>
-
-    <!-- 分页 -->
-    <el-pagination
-        @size-change="handleSizeChange"
-        @current-change="handleCurrentChange"
-        :current-page="pagination.current"
-        :page-sizes="[10, 20, 40]"
-        :page-size="pagination.size"
-        layout="total, sizes, prev, pager, next, jumper"
-        :total="pagination.total"
-    />
-  </el-main>
-
+  </div>
 </template>
 
 <script>
 import {onMounted, reactive, ref, computed} from 'vue';
 import api from '@/api/axios';
-import { ElMessage, ElMessageBox } from "element-plus"; // 引入配置好的 axios 实例
+import { ElMessage, ElMessageBox } from "element-plus";
+import {QuestionFilled} from "@element-plus/icons-vue"; // 引入配置好的 axios 实例
 
 export default {
   name: 'QuestionManager',
+  components: {QuestionFilled},
   setup() {
     const keyword = ref('');
     const dialogFormVisible = ref(false);
@@ -198,6 +246,37 @@ export default {
     const hasCorrectAnswer = computed(() => {
       return questionOptions.value.some(option => option.isCorrect);
     });
+    
+    /**
+     * 根据题目类型返回对应的标签类型
+     * @param {string} type - 题目类型
+     * @returns {string} 对应的标签类型
+     */
+    const getQuestionTypeTag = (type) => {
+      const typeMap = {
+        'single': 'primary',
+        'multiple': 'success',
+        'true_false': 'info',
+        'fill_blank': 'warning',
+        'short_answer': 'danger',
+        'essay': ''
+      };
+      return typeMap[type] || '';
+    };
+    
+    /**
+     * 根据难度返回对应的标签类型
+     * @param {string} difficulty - 难度
+     * @returns {string} 对应的标签类型
+     */
+    const getDifficultyTag = (difficulty) => {
+      const difficultyMap = {
+        'easy': 'success',
+        'medium': 'warning',
+        'hard': 'danger'
+      };
+      return difficultyMap[difficulty] || '';  
+    };
 
     /**
      * 获取题目信息
@@ -463,17 +542,211 @@ export default {
         deleteQuestion,
         formatQuestionType,
         formatDifficulty,
+        getQuestionTypeTag,
+        getDifficultyTag,
       };
   },
 };
 </script>
 
 <style scoped>
-.el-table {
-  margin-bottom: 20px;
+/* 页面容器 */
+.question-manager-container {
+  padding: 0;
+}
+
+/* 页面标题 */
+.page-header {
+  margin-bottom: 24px;
+}
+
+.header-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.page-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0;
+}
+
+.title-icon {
+  font-size: 28px;
+  color: #409EFF;
+}
+
+.page-description {
+  color: #6c757d;
+  font-size: 14px;
+  margin: 0;
+}
+
+/* 搜索区域 */
+.search-section {
+  margin-bottom: 24px;
+}
+
+.search-card {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+}
+
+.search-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+
+.search-left {
+  display: flex;
+  gap: 16px;
+  flex: 1;
+}
+
+.search-input {
+  width: 300px;
+}
+
+.search-right {
+  display: flex;
+  gap: 12px;
+}
+
+/* 表格区域 */
+.table-section {
+  margin-bottom: 24px;
+}
+
+.table-card {
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+}
+
+.table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.table-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #2c3e50;
+}
+
+.question-table {
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+:deep(.question-table .el-table__row) {
+  height: 56px;
+}
+
+:deep(.question-table .el-table__cell) {
+  padding: 12px 0;
+}
+
+/* 分页 */
+.pagination {
+  margin-top: 20px;
+  text-align: right;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+  align-items: center;
+}
+
+.action-buttons .el-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* 选项管理 */
+.option-item {
+  margin-bottom: 10px; 
+  display: flex; 
+  align-items: center;
+}
+
+.option-label {
+  margin-right: 10px; 
+  font-weight: bold;
+}
+
+.option-input {
+  flex: 1; 
+  margin-right: 10px;
+}
+
+.option-checkbox {
+  margin-right: 10px;
+}
+
+.add-option-btn {
+  margin-top: 10px;
+}
+
+.true-false-options {
+  margin-bottom: 10px;
+}
+
+/* 弹窗样式 */
+.question-dialog :deep(.el-dialog__header) {
+  padding: 20px 20px 10px;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.question-dialog :deep(.el-dialog__body) {
+  padding: 20px;
 }
 
 .el-button {
   border-radius: 10px;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+  .search-content {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-left {
+    flex-direction: column;
+    margin-bottom: 16px;
+  }
+  
+  .search-input {
+    width: 100%;
+  }
+  
+  .search-right {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  
+  .option-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .option-input {
+    width: 100%;
+    margin-right: 0;
+  }
 }
 </style>
