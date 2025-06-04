@@ -18,8 +18,8 @@
           <div class="search-left">
             <el-input 
               v-model="keyword" 
-              placeholder="输入题目ID进行搜索" 
-              @keyup.enter="search"
+              placeholder="请输入关键词搜索题目" 
+              @keyup.enter="applyFilters"
               class="search-input"
               clearable
             >
@@ -29,9 +29,51 @@
             </el-input>
           </div>
           <div class="search-right">
-            <el-button type="primary" @click="search">搜索</el-button>
-            <el-button @click="reset">重置</el-button>
+            <el-button type="primary" @click="applyFilters">搜索</el-button>
+            <el-button @click="resetFilters">重置</el-button>
             <el-button type="success" @click="openAddDialog">添加题目</el-button>
+          </div>
+        </div>
+        
+        <!-- 筛选区域 -->
+        <div class="filter-section">
+          <div class="filter-row">
+            <div class="filter-item">
+              <label class="filter-label">题目考点：</label>
+              <el-select v-model="filters.category" placeholder="请选择考点" clearable class="filter-select">
+                <el-option
+                  v-for="category in uniqueCategories"
+                  :key="category"
+                  :label="category"
+                  :value="category"
+                />
+              </el-select>
+            </div>
+            
+            <div class="filter-item">
+              <label class="filter-label">题型：</label>
+              <el-select v-model="filters.type" placeholder="请选择题型" clearable class="filter-select">
+                <el-option label="单选题" value="single" />
+                <el-option label="多选题" value="multiple" />
+                <el-option label="判断题" value="true_false" />
+                <el-option label="填空题" value="fill_blank" />
+                <el-option label="简答题" value="short_answer" />
+                <el-option label="论述题" value="essay" />
+              </el-select>
+            </div>
+            
+            <div class="filter-item">
+              <label class="filter-label">难度：</label>
+              <el-select v-model="filters.difficulty" placeholder="请选择难度" clearable class="filter-select">
+                <el-option label="简单" value="easy" />
+                <el-option label="中等" value="medium" />
+                <el-option label="困难" value="hard" />
+              </el-select>
+            </div>
+            
+            <div class="filter-item">
+              <el-button type="info" @click="resetFilters">重置筛选</el-button>
+            </div>
           </div>
         </div>
       </el-card>
@@ -41,10 +83,10 @@
     <div class="table-section">
       <el-card class="table-card" shadow="hover">
         <div class="table-header">
-          <h2 class="table-title">题目列表</h2>
+          <h2 class="table-title">题目列表 (共 {{ filteredQuestions.length }} 题)</h2>
         </div>
         <el-table 
-          :data="pagination.records" 
+          :data="filteredQuestions" 
           class="question-table"
           border
           stripe
@@ -77,18 +119,6 @@
             </template>
           </el-table-column>
         </el-table>
-
-        <!-- 分页 -->
-        <el-pagination
-          @size-change="handleSizeChange"
-          @current-change="handleCurrentChange"
-          :current-page="pagination.current"
-          :page-sizes="[10, 20, 40]"
-          :page-size="pagination.size"
-          layout="total, sizes, prev, pager, next, jumper"
-          :total="pagination.total"
-          class="pagination"
-        />
       </el-card>
     </div>
 
@@ -216,12 +246,18 @@ export default {
   setup() {
     const keyword = ref('');
     const dialogFormVisible = ref(false);
-    const pagination = ref({
-      current: 1,
-      total: null,
-      size: 10,
-      records: [],
+    const allQuestions = ref([]);
+    const filteredQuestions = ref([]);
+    
+    // 筛选条件
+    const filters = ref({
+      category: '',
+      type: '',
+      difficulty: ''
     });
+    
+    // 唯一的考点列表
+    const uniqueCategories = ref([]);
 
     const newQuestion = reactive({
       category: '',
@@ -279,18 +315,31 @@ export default {
     };
 
     /**
-     * 获取题目信息
+     * 获取所有题目信息
      */
-    const getQuestions = async () => {
+    const getAllQuestions = async () => {
       try {
-        const res = await api.get(`/questions/${pagination.value.current}/${pagination.value.size}`);
-        pagination.value.records = res.data.data.records;
-        pagination.value.total = res.data.data.total;
-        pagination.value.current = res.data.data.current;
-        pagination.value.size = res.data.data.size;
+        const res = await api.get('/questions');
+        allQuestions.value = res.data.data || [];
+        generateUniqueCategories();
+        applyFilters();
       } catch (error) {
         console.error('获取题目失败', error);
+        ElMessage.error('获取题目列表失败');
       }
+    };
+    
+    /**
+     * 生成唯一的考点列表
+     */
+    const generateUniqueCategories = () => {
+      const categories = new Set();
+      allQuestions.value.forEach(question => {
+        if (question.category && question.category.trim()) {
+          categories.add(question.category.trim());
+        }
+      });
+      uniqueCategories.value = Array.from(categories).sort();
     };
     
     /**
@@ -405,35 +454,56 @@ export default {
       return difficulties[difficulty] || difficulty;
     };
 
-    // 改变当前页码
-    const handleCurrentChange = (val) => {
-      pagination.value.current = val;
-      getQuestions();
-    };
-
-    // 改变每页显示记录数
-    const handleSizeChange = (val) => {
-      pagination.value.size = val;
-      getQuestions();
-    };
-
     /**
-     * 搜索题目
+     * 应用筛选条件
      */
-    const search = async () => {
-      try {
-        const res = await api.get(`/questions/${keyword.value}`);
-        pagination.value.records = [res.data.data.records];
-      } catch (error) {
-        ElMessage.error('没找到该题目');
-        console.error('搜索题目失败', error);
+    const applyFilters = () => {
+      let filtered = allQuestions.value;
+      
+      // 关键词筛选
+      if (keyword.value && keyword.value.trim()) {
+        const searchTerm = keyword.value.trim().toLowerCase();
+        filtered = filtered.filter(question => 
+          question.content.toLowerCase().includes(searchTerm) ||
+          question.category.toLowerCase().includes(searchTerm)
+        );
       }
+      
+      // 考点筛选
+      if (filters.value.category) {
+        filtered = filtered.filter(question => 
+          question.category === filters.value.category
+        );
+      }
+      
+      // 题型筛选
+      if (filters.value.type) {
+        filtered = filtered.filter(question => 
+          question.type === filters.value.type
+        );
+      }
+      
+      // 难度筛选
+      if (filters.value.difficulty) {
+        filtered = filtered.filter(question => 
+          question.difficulty === filters.value.difficulty
+        );
+      }
+      
+      filteredQuestions.value = filtered;
     };
-
-    // 重置搜索
-    const reset = () => {
+    
+    /**
+     * 重置筛选条件
+     */
+    const resetFilters = () => {
       keyword.value = '';
-      getQuestions();
+      filters.value = {
+        category: '',
+        type: '',
+        difficulty: ''
+      };
+      applyFilters();
     };
 
 
@@ -494,7 +564,7 @@ export default {
         console.log('提交的题目数据:', newQuestion);
         await api.post('/questions', newQuestion);
         dialogFormVisible.value = false; // 关闭弹窗
-        await getQuestions(); // 刷新题目列表
+        await getAllQuestions(); // 刷新题目列表
         ElMessage.success('题目添加成功');
         
         // 重置表单
@@ -510,29 +580,36 @@ export default {
       ElMessageBox.confirm('确定删除?')
           .then(async () => {
             await api.delete(`/questions/${id}`);
-            await getQuestions(); // 删除后刷新题目列表
+            await getAllQuestions(); // 删除后刷新题目列表
+            ElMessage.success('题目删除成功');
           })
+          .catch(() => {
+            // 用户取消删除
+          });
     };
     
 
 
     // 初始化时获取题目信息
     onMounted(() => {
-      getQuestions();
+      getAllQuestions();
     });
 
     return {
         keyword,
-        pagination,
+        allQuestions,
+        filteredQuestions,
+        filters,
+        uniqueCategories,
         dialogFormVisible,
         newQuestion,
         questionOptions,
         trueFalseAnswer,
         hasCorrectAnswer,
-        handleSizeChange,
-        handleCurrentChange,
-        search,
-        reset,
+        getAllQuestions,
+        generateUniqueCategories,
+        applyFilters,
+        resetFilters,
         openAddDialog,
         onTypeChange,
         addOption,
@@ -602,6 +679,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  margin-bottom: 20px;
 }
 
 .search-left {
@@ -617,6 +695,36 @@ export default {
 .search-right {
   display: flex;
   gap: 12px;
+}
+
+/* 筛选区域 */
+.filter-section {
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+}
+
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #606266;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.filter-select {
+  width: 150px;
 }
 
 /* 表格区域 */
@@ -736,6 +844,22 @@ export default {
   .search-right {
     flex-wrap: wrap;
     gap: 8px;
+  }
+  
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .filter-item {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  
+  .filter-select {
+    width: 100%;
   }
   
   .option-item {

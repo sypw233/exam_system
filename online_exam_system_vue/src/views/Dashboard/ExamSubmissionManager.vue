@@ -41,6 +41,79 @@
             </el-button>
           </div>
         </div>
+        
+        <!-- 筛选区域 -->
+        <div class="filter-section">
+          <div class="filter-row">
+            <div class="filter-item">
+              <label class="filter-label">阅卷状态：</label>
+              <el-select
+                  v-model="filters.gradingStatus"
+                  placeholder="选择阅卷状态"
+                  @change="applyFilters"
+                  clearable
+                  class="filter-select"
+              >
+                <el-option label="全部" value=""></el-option>
+                <el-option label="已阅卷" value="graded"></el-option>
+                <el-option label="待阅卷" value="ungraded"></el-option>
+              </el-select>
+            </div>
+            
+            <div class="filter-item">
+              <label class="filter-label">考试筛选：</label>
+              <el-select
+                  v-model="filters.examId"
+                  placeholder="选择考试"
+                  @change="applyFilters"
+                  clearable
+                  class="filter-select"
+              >
+                <el-option label="全部考试" value=""></el-option>
+                <el-option
+                    v-for="exam in uniqueExams"
+                    :key="exam.id"
+                    :label="exam.title"
+                    :value="exam.id"
+                ></el-option>
+              </el-select>
+            </div>
+            
+            <div class="filter-item">
+              <label class="filter-label">得分区间：</label>
+              <div class="score-range">
+                <el-input-number
+                    v-model="filters.minScore"
+                    placeholder="最低分"
+                    @change="applyFilters"
+                    :min="0"
+                    :precision="0"
+                    class="score-input"
+                    size="small"
+                ></el-input-number>
+                <span class="score-separator">-</span>
+                <el-input-number
+                    v-model="filters.maxScore"
+                    placeholder="最高分"
+                    @change="applyFilters"
+                    :min="0"
+                    :precision="0"
+                    class="score-input"
+                    size="small"
+                ></el-input-number>
+              </div>
+            </div>
+            
+            <div class="filter-item">
+              <el-button @click="resetFilters" type="info" plain>
+                <el-icon>
+                  <Refresh/>
+                </el-icon>
+                重置筛选
+              </el-button>
+            </div>
+          </div>
+        </div>
       </el-card>
     </div>
 
@@ -147,31 +220,33 @@
           <el-card class="grading-card">
             <div class="question-header">
               <h4>第{{ index + 1 }}题 (满分: {{ question.maxScore }}分)</h4>
-              <div class="score-input">
-                <div class="score-input-container" @mouseenter="showAiButton(question)"
-                     @mouseleave="hideAiButton(question)">
-                  <el-input-number
-                      v-model="question.currentScore"
-                      :min="0"
-                      :max="question.maxScore"
-                      :precision="0"
-                      size="small"
-                      :disabled="gradingDetails.isGraded && !isEditing"
-                  />
-                  <span class="score-label">分</span>
-                  <!-- AI辅助评分悬浮按钮 -->
+              <div class="score-section">
+                <div class="score-input">
+                  <div class="score-input-container">
+                    <el-input-number
+                        v-model="question.currentScore"
+                        :min="0"
+                        :max="question.maxScore"
+                        :precision="0"
+                        size="small"
+                        :disabled="gradingDetails.isGraded && !isEditing"
+                        @change="updateQuestionScore(question.questionId || question.id, question.currentScore)"
+                    />
+                    <span class="score-label">分</span>
+                  </div>
+                </div>
+                <div v-if="isSubjectiveQuestion(question.questionType)" class="ai-button-container">
                   <el-button
-                      v-if="isSubjectiveQuestion(question.questionType) && question.showAiButton"
-                      class="ai-float-button"
+                      class="ai-grading-button"
                       type="primary"
                       size="small"
-                      circle
                       @click="openAiGradingDialog(question)"
                       :loading="question.aiLoading"
                   >
                     <el-icon>
                       <Service/>
                     </el-icon>
+                    AI智能评分
                   </el-button>
                 </div>
               </div>
@@ -331,6 +406,17 @@ export default {
     const examSubmissions = ref([]);
     const searchKeyword = ref('');
     const filteredSubmissions = ref([]);
+    
+    // 筛选条件
+    const filters = ref({
+      gradingStatus: '', // 阅卷状态：graded(已阅卷), ungraded(待阅卷)
+      examId: '', // 考试ID
+      minScore: null, // 最低分
+      maxScore: null // 最高分
+    });
+    
+    // 唯一考试列表
+    const uniqueExams = ref([]);
 
     // 试卷详情相关
 
@@ -358,24 +444,105 @@ export default {
         if (response.status === 200) {
           examSubmissions.value = response.data;
           filteredSubmissions.value = examSubmissions.value;
+          
+          // 生成唯一考试列表
+          generateUniqueExams();
+          
+          // 应用当前筛选条件
+          applyFilters();
         }
       } catch (error) {
         console.error('Error fetching exam submissions:', error);
       }
     };
+    
+    /**
+     * 生成唯一考试列表
+     */
+    const generateUniqueExams = () => {
+      const examMap = new Map();
+      examSubmissions.value.forEach(submission => {
+        if (!examMap.has(submission.examId)) {
+          examMap.set(submission.examId, {
+            id: submission.examId,
+            title: submission.examTitle
+          });
+        }
+      });
+      uniqueExams.value = Array.from(examMap.values());
+    };
 
     // 根据关键词进行筛选
     const searchSubmission = () => {
-      // console.log("筛选keyword:" + searchKeyword.value.trim())
-      if (searchKeyword.value.trim() === '') {
-        filteredSubmissions.value = examSubmissions.value;
-        // console.log("筛选内容为空")
-      } else {
-        filteredSubmissions.value = examSubmissions.value.filter(submission => {
+      applyFilters();
+    };
+    
+    /**
+     * 应用所有筛选条件
+     */
+    const applyFilters = () => {
+      let filtered = [...examSubmissions.value];
+      
+      // 关键词筛选
+      if (searchKeyword.value.trim() !== '') {
+        filtered = filtered.filter(submission => {
           return submission.userName.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
               submission.examTitle.toLowerCase().includes(searchKeyword.value.toLowerCase())
         });
       }
+      
+      // 阅卷状态筛选
+      if (filters.value.gradingStatus !== '') {
+        filtered = filtered.filter(submission => {
+          if (filters.value.gradingStatus === 'graded') {
+            return submission.isGraded === true;
+          } else if (filters.value.gradingStatus === 'ungraded') {
+            return submission.isGraded === false;
+          }
+          return true;
+        });
+      }
+      
+      // 考试筛选
+      if (filters.value.examId !== '') {
+        filtered = filtered.filter(submission => {
+          return submission.examId === filters.value.examId;
+        });
+      }
+      
+      // 得分区间筛选
+      if (filters.value.minScore !== null || filters.value.maxScore !== null) {
+        filtered = filtered.filter(submission => {
+          const score = submission.submissionScore || 0;
+          let inRange = true;
+          
+          if (filters.value.minScore !== null) {
+            inRange = inRange && score >= filters.value.minScore;
+          }
+          
+          if (filters.value.maxScore !== null) {
+            inRange = inRange && score <= filters.value.maxScore;
+          }
+          
+          return inRange;
+        });
+      }
+      
+      filteredSubmissions.value = filtered;
+    };
+    
+    /**
+     * 重置所有筛选条件
+     */
+    const resetFilters = () => {
+      filters.value = {
+        gradingStatus: '',
+        examId: '',
+        minScore: null,
+        maxScore: null
+      };
+      searchKeyword.value = '';
+      applyFilters();
     };
 
     /**
@@ -623,19 +790,7 @@ export default {
       return ['SINGLE_CHOICE', 'MULTIPLE_CHOICE', 'TRUE_FALSE', 'single', 'multiple', 'true_false', 'single_choice', 'multiple_choice'].includes(type);
     };
 
-    // 显示AI按钮
-    const showAiButton = (question) => {
-      if (isSubjectiveQuestion(question.questionType)) {
-        question.showAiButton = true;
-      }
-    };
-
-    // 隐藏AI按钮（延迟0.5秒）
-    const hideAiButton = (question) => {
-      setTimeout(() => {
-        question.showAiButton = false;
-      }, 500);
-    };
+    // AI按钮现在直接显示，不需要悬浮逻辑
 
     // 打开AI辅助评分弹窗
     const openAiGradingDialog = (question) => {
@@ -858,13 +1013,17 @@ export default {
       isObjectiveQuestion,
       getOptionText,
       formatDateTime,
+      // 筛选相关
+      filters,
+      uniqueExams,
+      applyFilters,
+      resetFilters,
+      generateUniqueExams,
       // AI辅助评分相关
       aiGradingDialogVisible,
       currentAiQuestion,
       aiGradingForm,
       aiStreamingContent,
-      showAiButton,
-      hideAiButton,
       openAiGradingDialog,
       closeAiGradingDialog,
       startAiGrading,
@@ -927,6 +1086,7 @@ export default {
   justify-content: space-between;
   align-items: center;
   gap: 16px;
+  margin-bottom: 20px;
 }
 
 .search-left {
@@ -942,6 +1102,51 @@ export default {
 .search-right {
   display: flex;
   gap: 12px;
+}
+
+/* 筛选区域 */
+.filter-section {
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  align-items: center;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 14px;
+  color: #606266;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.filter-select {
+  width: 150px;
+}
+
+.score-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.score-input {
+  width: 80px;
+}
+
+.score-separator {
+  color: #909399;
+  font-weight: 500;
 }
 
 /* 表格区域 */
@@ -1022,6 +1227,19 @@ export default {
   margin-bottom: 16px;
 }
 
+.score-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  padding-right: 56px;
+}
+
+.score-input {
+  display: flex;
+  align-items: center;
+}
+
 .score-input-container {
   position: relative;
   display: flex;
@@ -1031,10 +1249,32 @@ export default {
 .score-label {
   margin-left: 8px;
   color: #606266;
+  font-weight: 500;
 }
 
-.ai-float-button {
-  margin-left: 8px;
+.ai-button-container {
+  display: flex;
+  justify-content: flex-end;
+  margin-right: -24px;
+}
+
+.ai-grading-button {
+  font-size: 12px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  color: white;
+  transition: all 0.3s ease;
+}
+
+.ai-grading-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.ai-grading-button .el-icon {
+  margin-right: 4px;
 }
 
 .question-content {
@@ -1122,6 +1362,32 @@ export default {
 
   .search-input {
     width: 100%;
+  }
+
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .filter-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+
+  .score-range {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .score-input {
+    flex: 1;
+    max-width: 120px;
   }
 
   .action-buttons {

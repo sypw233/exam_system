@@ -50,14 +50,10 @@ class AiGradingService(
      */
     fun gradeAnswer(request: AiGradingRequest): AiGradingResponse {
         try {
-
             val generation = Generation()
-
             // 构建用户消息
             val userMessage = objectMapper.writeValueAsString(request)
-
             val systemMessage = Message.builder().role(Role.SYSTEM.value).content(systemPrompt).build()
-
             val userMsg = Message.builder().role(Role.USER.value).content(userMessage).build()
 
             val param = GenerationParam.builder()
@@ -66,11 +62,9 @@ class AiGradingService(
                 .resultFormat(GenerationParam.ResultFormat.MESSAGE)
                 .apiKey(apiKey)
                 .build()
-
             val result: GenerationResult = generation.call(param)
             println("AI result:$result")
             val responseContent = result.output.choices[0].message.content
-
             // 解析AI返回的JSON响应
             return try {
                 // 提取JSON内容，去除markdown代码块包装

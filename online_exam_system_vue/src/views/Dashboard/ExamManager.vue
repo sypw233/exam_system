@@ -173,17 +173,14 @@
               style="width: 100%;"
           />
         </el-form-item>
-
-        <!-- 选择题库题目 -->
-        <el-form-item label="选择题目">
-          <!-- 高级筛选区域 -->
-          <div class="filter-section">
-            <div class="section-title">🔍 题目筛选</div>
+         <!-- 高级筛选区域 -->
+         <div class="filter-section">
+            <div class="section-title">题目筛选</div>
             <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; margin-bottom: 20px; align-items: end;">
               <!-- 关键词搜索 -->
               <el-input
                   v-model="searchKeyword"
-                  placeholder="🔍 搜索题目内容..."
+                  placeholder="搜索题目内容..."
                   clearable
                   @input="searchQuestions"
               />
@@ -211,16 +208,15 @@
               
               <!-- 重置筛选按钮 -->
               <el-button @click="resetFilters" type="info" plain>
-                🔄 重置筛选
+                重置筛选
               </el-button>
             </div>
           </div>
-
-          <!-- 题目选择区域 - 并排布局 -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+        <!-- 题目选择区域 - 并排布局 -->
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
             <!-- 题库题目区域 -->
             <div class="questions-section">
-              <div class="questions-section-title">📚 题库题目</div>
+              <div class="questions-section-title">题库题目</div>
               <el-table
                   :data="filteredQuestions"
                   style="width: 100%;"
@@ -247,14 +243,14 @@
               <!-- 添加到试卷按钮 -->
               <div style="margin: 10px 0; text-align: center;">
                 <el-button type="primary" @click="addToExam" :disabled="!selectedRows.length" size="small">
-                  <i class="el-icon-plus">➕</i> 添加到试卷 ({{ selectedRows.length || 0 }}题)
+                  添加到试卷 ({{ selectedRows.length || 0 }}题)
                 </el-button>
               </div>
             </div>
 
             <!-- 已选题目区域 -->
             <div class="questions-section">
-              <div class="questions-section-title">✅ 已选题目 <span style="color: #409EFF; margin-left: 10px; font-size: 14px;">共 {{ selectedQuestions.length }} 题</span></div>
+              <div class="questions-section-title">已选题目 <span style="color: #409EFF; margin-left: 10px; font-size: 14px;">共 {{ selectedQuestions.length }} 题</span></div>
               <el-table
                   :data="selectedQuestions"
                   style="width: 100%;"
@@ -283,7 +279,6 @@
               </el-table>
             </div>
           </div>
-        </el-form-item>
       </el-form>
 
       <!-- 弹窗底部按钮 -->
@@ -347,10 +342,6 @@
           </el-table>
         </el-form-item>
 
-        <!-- 导出成绩按钮 -->
-        <el-form-item>
-          <el-button type="primary" @click="exportResults(viewExamForm.id)">导出成绩</el-button>
-        </el-form-item>
       </el-form>
       
       <template #footer>
