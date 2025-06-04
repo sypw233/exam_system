@@ -184,7 +184,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   height: 60px;
-  padding: 0 24px;
+  padding: 0 16px;
   background: #fff;
   border-bottom: 1px solid #e8eaec;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);

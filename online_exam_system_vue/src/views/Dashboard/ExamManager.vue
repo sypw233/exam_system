@@ -33,13 +33,13 @@
           </div>
 
           <div class="search-right">
-            <el-button type="primary" @click="openManualExamDialog">
+            <el-button type="primary" @click="CreateExamDialogFormVisible = true">
               <el-icon>
                 <Plus/>
               </el-icon>
               手动组卷
             </el-button>
-            <el-button type="success" @click="openRandomExamDialog">
+            <el-button type="success" @click="randomExamDialogVisible = true">
               <el-icon>
                 <Refresh/>
               </el-icon>
@@ -136,7 +136,7 @@
       </el-card>
     </div>
     <!-- 手动组建试卷弹窗 -->
-    <el-dialog v-model="CreateExamDialogFormVisible" title="手动组建试卷" width="800px">
+    <el-dialog v-model="CreateExamDialogFormVisible" title="手动组建试卷" width="1200px">
       <el-form :model="examForm" ref="form" label-width="120px">
         <!-- 考试名称 -->
         <el-form-item label="考试名称" :rules="[{ required: true, message: '请输入考试名称', trigger: 'blur' }]">
@@ -177,90 +177,112 @@
         <!-- 选择题库题目 -->
         <el-form-item label="选择题目">
           <!-- 高级筛选区域 -->
-          <div style="margin-bottom: 15px; display: flex; gap: 10px;">
-            <el-input
-                v-model="searchKeyword"
-                placeholder="请输入题目关键词"
-                clearable
-                @input="searchQuestions"
-                style="width: 200px;"
-            />
-            <el-select v-model="filterCategory" placeholder="按分类筛选" clearable @change="applyFilters"
-                       style="width: 150px;">
-              <el-option
-                  v-for="category in categoryList"
-                  :key="category"
-                  :label="category"
-                  :value="category"
-              ></el-option>
-            </el-select>
-            <el-select v-model="filterDifficulty" placeholder="按难度筛选" clearable @change="applyFilters"
-                       style="width: 150px;">
-              <el-option label="简单" value="easy"></el-option>
-              <el-option label="中等" value="medium"></el-option>
-              <el-option label="困难" value="hard"></el-option>
-            </el-select>
-            <el-select v-model="filterType" placeholder="按题型筛选" clearable @change="applyFilters"
-                       style="width: 150px;">
-              <el-option label="单选题" value="single"></el-option>
-              <el-option label="多选题" value="multiple"></el-option>
-              <el-option label="判断题" value="true_false"></el-option>
-              <el-option label="填空题" value="fill_blank"></el-option>
-              <el-option label="简答题" value="short_answer"></el-option>
-            </el-select>
+          <div class="filter-section">
+            <div class="section-title">🔍 题目筛选</div>
+            <div style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr auto; gap: 15px; margin-bottom: 20px; align-items: end;">
+              <!-- 关键词搜索 -->
+              <el-input
+                  v-model="searchKeyword"
+                  placeholder="🔍 搜索题目内容..."
+                  clearable
+                  @input="searchQuestions"
+              />
+              
+              <!-- 按分类筛选 -->
+              <el-select v-model="filterCategory" placeholder="按分类筛选" clearable @change="applyFilters">
+                <el-option v-for="category in categoryList" :key="category" :label="category" :value="category"></el-option>
+              </el-select>
+              
+              <!-- 按难度筛选 -->
+              <el-select v-model="filterDifficulty" placeholder="按难度筛选" clearable @change="applyFilters">
+                <el-option label="简单" value="easy"></el-option>
+                <el-option label="中等" value="medium"></el-option>
+                <el-option label="困难" value="hard"></el-option>
+              </el-select>
+              
+              <!-- 按题型筛选 -->
+              <el-select v-model="filterType" placeholder="按题型筛选" clearable @change="applyFilters">
+                <el-option label="单选题" value="single"></el-option>
+                <el-option label="多选题" value="multiple"></el-option>
+                <el-option label="判断题" value="true_false"></el-option>
+                <el-option label="填空题" value="fill_blank"></el-option>
+                <el-option label="简答题" value="short_answer"></el-option>
+              </el-select>
+              
+              <!-- 重置筛选按钮 -->
+              <el-button @click="resetFilters" type="info" plain>
+                🔄 重置筛选
+              </el-button>
+            </div>
           </div>
 
-          <el-table
-              :data="filteredQuestions"
-              style="width: 100%; height: 400px;"
-              :row-key="row => row.id"
-              :highlight-current-row="true"
-              @selection-change="handleSelectionChange"
-          >
-            <el-table-column type="selection" width="55"></el-table-column>
-            <el-table-column prop="category" label="分类" width="150"></el-table-column>
-            <el-table-column prop="content" label="题目内容" width="300"></el-table-column>
-            <el-table-column prop="type" label="题型" width="150">
-              <template #default="scope">
-                <span>{{ formatQuestionType(scope.row.type) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="difficulty" label="难度" width="100">
-              <template #default="scope">
-                <span>{{ formatDifficulty(scope.row.difficulty) }}</span>
-              </template>
-            </el-table-column>
-          </el-table>
-        </el-form-item>
+          <!-- 题目选择区域 - 并排布局 -->
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 20px;">
+            <!-- 题库题目区域 -->
+            <div class="questions-section">
+              <div class="questions-section-title">📚 题库题目</div>
+              <el-table
+                  :data="filteredQuestions"
+                  style="width: 100%;"
+                  height="400"
+                  :row-key="row => row.id"
+                  :highlight-current-row="true"
+                  @selection-change="handleSelectionChange"
+              >
+                <el-table-column type="selection" width="55"></el-table-column>
+                <el-table-column prop="content" label="题目内容" min-width="200" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="type" label="题型" width="80">
+                  <template #default="scope">
+                    <el-tag size="small">{{ formatQuestionType(scope.row.type) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="category" label="分类" width="100" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="difficulty" label="难度" width="80">
+                  <template #default="scope">
+                    <el-tag size="small">{{ formatDifficulty(scope.row.difficulty) }}</el-tag>
+                  </template>
+                </el-table-column>
+              </el-table>
+              
+              <!-- 添加到试卷按钮 -->
+              <div style="margin: 10px 0; text-align: center;">
+                <el-button type="primary" @click="addToExam" :disabled="!selectedRows.length" size="small">
+                  <i class="el-icon-plus">➕</i> 添加到试卷 ({{ selectedRows.length || 0 }}题)
+                </el-button>
+              </div>
+            </div>
 
-        <!-- 添加到试卷按钮 -->
-        <el-button type="primary" @click="addToExam">添加到试卷</el-button>
-
-        <!-- 显示已选择的题目 -->
-        <el-form-item label="已选择题目">
-          <el-table
-              :data="selectedQuestions"
-              style="width: 100%; height: 400px;"
-              :row-key="row => row.id"
-          >
-            <el-table-column prop="category" label="分类" width="150"></el-table-column>
-            <el-table-column prop="content" label="题目内容" width="300"></el-table-column>
-            <el-table-column prop="type" label="题型" width="150">
-              <template #default="scope">
-                <span>{{ formatQuestionType(scope.row.type) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="difficulty" label="难度" width="100">
-              <template #default="scope">
-                <span>{{ formatDifficulty(scope.row.difficulty) }}</span>
-              </template>
-            </el-table-column>
-            <el-table-column label="操作" width="100">
-              <template #default="scope">
-                <el-button size="small" @click="removeFromExam(scope.row)">移除</el-button>
-              </template>
-            </el-table-column>
-          </el-table>
+            <!-- 已选题目区域 -->
+            <div class="questions-section">
+              <div class="questions-section-title">✅ 已选题目 <span style="color: #409EFF; margin-left: 10px; font-size: 14px;">共 {{ selectedQuestions.length }} 题</span></div>
+              <el-table
+                  :data="selectedQuestions"
+                  style="width: 100%;"
+                  height="400"
+                  :row-key="row => row.id"
+              >
+                <el-table-column prop="content" label="题目内容" min-width="200" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="type" label="题型" width="80">
+                  <template #default="scope">
+                    <el-tag size="small">{{ formatQuestionType(scope.row.type) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="category" label="分类" width="100" show-overflow-tooltip></el-table-column>
+                <el-table-column prop="difficulty" label="难度" width="80">
+                  <template #default="scope">
+                    <el-tag size="small">{{ formatDifficulty(scope.row.difficulty) }}</el-tag>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="80">
+                  <template #default="scope">
+                    <el-button size="small" type="danger" @click="removeFromExam(scope.row)" circle>
+                      🗑️
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
         </el-form-item>
       </el-form>
 
@@ -274,7 +296,7 @@
     </el-dialog>
 
     <!-- 随机组卷弹窗 -->
-    <el-dialog v-model="randomExamDialogVisible" title="随机组建试卷" width="800px">
+    <el-dialog v-model="randomExamDialogVisible" title="随机组建试卷" width="1200px">
       <RandomExamForm ref="randomExamFormRef" :courseList="courseList"/>
 
       <template #footer>
@@ -330,6 +352,12 @@
           <el-button type="primary" @click="exportResults(viewExamForm.id)">导出成绩</el-button>
         </el-form-item>
       </el-form>
+      
+      <template #footer>
+        <div class="dialog-footer">
+          <el-button @click="viewExamDialogVisible = false">关闭</el-button>
+        </div>
+      </template>
     </el-dialog>
   </div>
 </template>
@@ -673,59 +701,56 @@ export default {
       }
     };
 
-    // 应用高级筛选
-    const applyFilters = async () => {
-      // 根据筛选条件从服务器获取数据
-      try {
-        let url = '/questions';
+    /**
+     * 应用高级筛选 - 纯前端实现
+     */
+    const applyFilters = () => {
+      // 从原始题目数据开始筛选
+      let filteredData = [...questions.value];
 
-        // 如果有筛选条件，使用相应的API
-        if (filterCategory.value && filterDifficulty.value) {
-          url = `/questions/category/${filterCategory.value}/difficulty/${filterDifficulty.value}`;
-        } else if (filterCategory.value) {
-          url = `/questions/category/${filterCategory.value}`;
-        } else if (filterDifficulty.value) {
-          url = `/questions/difficulty/${filterDifficulty.value}`;
-        }
-
-        const res = await api.get(url);
-        let filteredData = res.data.data;
-
-        // 进一步根据题型筛选（前端筛选）
-        if (filterType.value) {
-          filteredData = filteredData.filter(q => q.type === filterType.value);
-        }
-
-        // 进一步根据搜索关键词筛选（前端筛选）
-        if (searchKeyword.value.trim() !== '') {
-          filteredData = filteredData.filter(q =>
-              q.content.toLowerCase().includes(searchKeyword.value.toLowerCase())
-          );
-        }
-
-        filteredQuestions.value = filteredData;
-      } catch (error) {
-        console.error('筛选题目失败', error);
-      }
-    };
-
-    // 搜索题目
-    const searchQuestions = () => {
-      // 如果已经应用了筛选条件，则调用applyFilters
-      if (filterCategory.value || filterDifficulty.value || filterType.value) {
-        applyFilters();
-        return;
+      // 按分类筛选
+      if (filterCategory.value) {
+        filteredData = filteredData.filter(q => q.category === filterCategory.value);
       }
 
-      // 否则直接在本地数据中筛选
-      if (searchKeyword.value.trim() === '') {
-        filteredQuestions.value = questions.value;
-      } else {
-        filteredQuestions.value = questions.value.filter(q =>
+      // 按难度筛选
+      if (filterDifficulty.value) {
+        filteredData = filteredData.filter(q => q.difficulty === filterDifficulty.value);
+      }
+
+      // 按题型筛选
+      if (filterType.value) {
+        filteredData = filteredData.filter(q => q.type === filterType.value);
+      }
+
+      // 按搜索关键词筛选
+      if (searchKeyword.value.trim() !== '') {
+        filteredData = filteredData.filter(q =>
             q.content.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
             q.category.toLowerCase().includes(searchKeyword.value.toLowerCase())
         );
       }
+
+      filteredQuestions.value = filteredData;
+    };
+
+    /**
+     * 搜索题目 - 统一调用筛选方法
+     */
+    const searchQuestions = () => {
+      // 统一调用applyFilters方法，它会处理所有筛选条件包括搜索关键词
+      applyFilters();
+    };
+
+    /**
+     * 重置筛选条件
+     */
+    const resetFilters = () => {
+      filterCategory.value = '';
+      filterDifficulty.value = '';
+      filterType.value = '';
+      searchKeyword.value = '';
+      filteredQuestions.value = [...questions.value];
     };
 
     // 添加选中的题目到试卷
@@ -835,6 +860,7 @@ export default {
       getExamInfo,
       searchQuestions,
       applyFilters,
+      resetFilters,
       handleSelectionChange,
       formatQuestionType,
       formatDifficulty,
@@ -846,7 +872,6 @@ export default {
 </script>
 
 <style scoped>
-
 .exam-manager-container {
   padding: 0;
 }
@@ -888,8 +913,6 @@ export default {
   justify-content: flex-end;
   gap: 10px;
 }
-
-
 
 /* 搜索区域 */
 .search-section {
@@ -992,21 +1015,199 @@ export default {
 }
 
 /* 弹窗样式 */
+:deep(.el-dialog) {
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.1);
+}
+
 :deep(.el-dialog__header) {
-  padding: 20px 20px 10px;
+  padding: 20px 24px 15px;
   border-bottom: 1px solid #e9ecef;
+  background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+}
+
+:deep(.el-dialog__title) {
+  font-size: 18px;
+  font-weight: 600;
+  color: #303133;
+  position: relative;
+}
+
+:deep(.el-dialog__title)::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 0;
+  width: 40px;
+  height: 3px;
+  background: linear-gradient(90deg, #409EFF, #79bbff);
+  border-radius: 3px;
 }
 
 :deep(.el-dialog__body) {
-  padding: 20px;
+  padding: 24px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+:deep(.el-dialog__body::-webkit-scrollbar) {
+  width: 6px;
+}
+
+:deep(.el-dialog__body::-webkit-scrollbar-thumb) {
+  background-color: #dcdfe6;
+  border-radius: 3px;
+}
+
+:deep(.el-dialog__body::-webkit-scrollbar-track) {
+  background-color: #f2f6fc;
 }
 
 .dialog-footer {
   display: flex;
   justify-content: flex-end;
   gap: 12px;
-  padding: 20px 20px 0;
+  padding: 20px 24px;
   border-top: 1px solid #e9ecef;
+  background-color: #f8f9fa;
+}
+
+/* 表单样式美化 */
+:deep(.el-form-item__label) {
+  font-weight: 500;
+  color: #606266;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-textarea__inner) {
+  box-shadow: 0 0 0 1px #dcdfe6 inset;
+  transition: all 0.3s;
+}
+
+:deep(.el-input__wrapper:hover),
+:deep(.el-textarea__inner:hover) {
+  box-shadow: 0 0 0 1px #c0c4cc inset;
+}
+
+:deep(.el-input__wrapper.is-focus),
+:deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 1px #409EFF inset;
+}
+
+/* 表格样式美化 */
+:deep(.el-table) {
+  border-radius: 6px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+:deep(.el-table__header) {
+  background-color: #f5f7fa;
+}
+
+:deep(.el-table__header th) {
+  background-color: #f5f7fa;
+  color: #606266;
+  font-weight: 600;
+  height: 50px;
+}
+
+:deep(.el-table__row) {
+  transition: background-color 0.3s;
+}
+
+:deep(.el-table__row:hover) {
+  background-color: #f0f9ff !important;
+}
+
+/* 按钮样式美化 */
+:deep(.el-button) {
+  border-radius: 4px;
+  transition: all 0.3s;
+  font-weight: 500;
+}
+
+:deep(.el-button--primary) {
+  background: linear-gradient(135deg, #409EFF, #79bbff);
+  border-color: #409EFF;
+  box-shadow: 0 2px 6px rgba(64, 158, 255, 0.2);
+}
+
+:deep(.el-button--primary:hover) {
+  background: linear-gradient(135deg, #66b1ff, #409EFF);
+  border-color: #66b1ff;
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+  transform: translateY(-1px);
+}
+
+:deep(.el-button--danger) {
+  background: linear-gradient(135deg, #f56c6c, #f78989);
+  border-color: #f56c6c;
+  box-shadow: 0 2px 6px rgba(245, 108, 108, 0.2);
+}
+
+:deep(.el-button--danger:hover) {
+  background: linear-gradient(135deg, #f78989, #f56c6c);
+  border-color: #f78989;
+  box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+  transform: translateY(-1px);
+}
+
+/* 筛选区域样式 */
+.filter-section {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+}
+
+/* 手动组卷特定样式 */
+:deep(.el-form-item.is-required .el-form-item__label)::before {
+  color: #f56c6c;
+}
+
+/* 题目分布卡片样式 */
+.distribution-card {
+  background-color: #fff;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.05);
+  border-left: 3px solid #409EFF;
+  transition: all 0.3s;
+}
+
+.distribution-card:hover {
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+/* 已选题目和题库题目区域样式 */
+.questions-section {
+  margin-top: 20px;
+  border-top: 1px dashed #e9ecef;
+  padding-top: 20px;
+}
+
+.questions-section-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #303133;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+}
+
+.questions-section-title::before {
+  content: '';
+  display: inline-block;
+  width: 4px;
+  height: 16px;
+  background: linear-gradient(to bottom, #409EFF, #79bbff);
+  margin-right: 8px;
+  border-radius: 2px;
 }
 
 /* 响应式设计 */
@@ -1028,6 +1229,11 @@ export default {
 
   .action-buttons {
     flex-direction: column;
+  }
+  
+  :deep(.el-dialog) {
+    width: 95% !important;
+    margin: 10px auto !important;
   }
 }
 </style>
